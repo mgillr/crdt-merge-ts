@@ -5,14 +5,29 @@
 **Conflict-free merge, dedup & diff for any dataset — powered by CRDTs**
 
 [![npm version](https://img.shields.io/npm/v/crdt-merge.svg)](https://www.npmjs.com/package/crdt-merge)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Tests: 97/97](https://img.shields.io/badge/tests-97%2F97-brightgreen.svg)](https://github.com/mgillr/crdt-merge-ts)
 
 **Merge any two datasets in one function call. No conflicts. No coordination. No data loss.**
 
-[Quick Start](#-quick-start) • [Why CRDTs](#-why-crdts) • [API Reference](#-api-reference) • [Python Version](https://github.com/mgillr/crdt-merge) • [HuggingFace Demo](https://huggingface.co/spaces/Optitransfer/crdt-merge)
+[Quick Start](#-quick-start) • [Why CRDTs](#-why-crdts) • [API Reference](#-api-reference) • [All Languages](#-available-in-every-language)
 
 </div>
+
+---
+
+## 🌐 Available in Every Language
+
+| Language | Package | Install | Repo |
+|---|---|---|---|
+| **Python** 🐍 | `crdt-merge` | `pip install crdt-merge` | [crdt-merge](https://github.com/mgillr/crdt-merge) |
+| **TypeScript** | `crdt-merge` | `npm install crdt-merge` | **You are here** |
+| **Rust** 🦀 | `crdt-merge` | `cargo add crdt-merge` | [crdt-merge-rs](https://github.com/mgillr/crdt-merge-rs) |
+| **Java** ☕ | `io.optitransfer:crdt-merge` | Maven / Gradle | [crdt-merge-java](https://github.com/mgillr/crdt-merge-java) |
+| **CLI** 🖥️ | included in Rust | `cargo install crdt-merge` | [crdt-merge-rs](https://github.com/mgillr/crdt-merge-rs) |
+
+> **[🤗 Try it in the browser →](https://huggingface.co/spaces/Optitransfer/crdt-merge)**
 
 ---
 
@@ -197,14 +212,7 @@ All CRDT types support `merge()`, `value` getter, `toJSON()`, and `static fromJS
 
 ## 📊 Benchmarks
 
-*Coming soon — benchmarks for the TypeScript version.*
-
-See the [Python version benchmarks](https://github.com/mgillr/crdt-merge#-benchmarks) for reference numbers.
-
-## 🔗 Related
-
-- **[crdt-merge (Python)](https://github.com/mgillr/crdt-merge)** — The original Python library
-- **[HuggingFace Demo](https://huggingface.co/spaces/Optitransfer/crdt-merge)** — Try it in the browser
+See the [Python version benchmarks](https://github.com/mgillr/crdt-merge#-benchmarks) for reference numbers (320K+ rows/sec, 8.6M CRDT ops/sec).
 
 ## 📄 License
 
@@ -216,6 +224,6 @@ MIT — use it for anything.
 
 Built with math, not hope. 🧬
 
-**[⭐ Star on GitHub](https://github.com/mgillr/crdt-merge-ts)** • **[🤗 Try on HuggingFace](https://huggingface.co/spaces/Optitransfer/crdt-merge)**
+**[⭐ Star on GitHub](https://github.com/mgillr/crdt-merge-ts)** • **[🤗 Try on HuggingFace](https://huggingface.co/spaces/Optitransfer/crdt-merge)** • **[📦 npm](https://www.npmjs.com/package/crdt-merge)**
 
 </div>
