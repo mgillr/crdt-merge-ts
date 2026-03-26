@@ -6,7 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/crdt-merge.svg)](https://www.npmjs.com/package/crdt-merge)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Tests: 97/97](https://img.shields.io/badge/tests-97%2F97-brightgreen.svg)](https://github.com/mgillr/crdt-merge-ts)
 
 **Merge any two datasets in one function call. No conflicts. No coordination. No data loss.**
@@ -216,7 +216,11 @@ See the [Python version benchmarks](https://github.com/mgillr/crdt-merge#-benchm
 
 ## 📄 License
 
-MIT — use it for anything.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+
+Copyright 2026 Ryan Gillespie / Optitransfer. See [NOTICE](NOTICE) for attribution requirements.
+
+For commercial licensing inquiries: leer@optitransfer.ch
 
 ---
 
