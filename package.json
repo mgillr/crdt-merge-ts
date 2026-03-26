@@ -11,7 +11,7 @@
   },
   "keywords": ["crdt", "merge", "dedup", "conflict-free", "dataset", "diff", "data"],
   "author": "Optitransfer",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": { "type": "git", "url": "https://github.com/mgillr/crdt-merge-ts" },
   "homepage": "https://github.com/mgillr/crdt-merge-ts",
   "jest": {
