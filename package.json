@@ -1,24 +1,43 @@
 {
   "name": "crdt-merge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Conflict-free merge, dedup & diff for any dataset. Powered by CRDTs.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest --forceExit"
   },
-  "keywords": ["crdt", "merge", "dedup", "conflict-free", "dataset", "diff", "data"],
+  "keywords": [
+    "crdt",
+    "merge",
+    "dedup",
+    "conflict-free",
+    "dataset",
+    "diff",
+    "data"
+  ],
   "author": "Optitransfer",
   "license": "Apache-2.0",
-  "repository": { "type": "git", "url": "https://github.com/mgillr/crdt-merge-ts" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mgillr/crdt-merge-ts"
+  },
   "homepage": "https://github.com/mgillr/crdt-merge-ts",
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.ts"],
-    "moduleFileExtensions": ["ts", "js", "json"],
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
     "globals": {
       "ts-jest": {
         "diagnostics": false
