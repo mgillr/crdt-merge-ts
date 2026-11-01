@@ -1,4 +1,10 @@
 "use strict";
+// Copyright 2026 Ryan Gillespie
+// SPDX-License-Identifier: Apache-2.0
+//
+// Commercial licensing: data@optitransfer.ch, rgillespie83@icloud.com
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LWWMap = exports.ORSet = exports.LWWRegister = exports.PNCounter = exports.GCounter = void 0;
 /**
  * Core CRDT primitives — mathematically proven conflict-free replicated data types.
  *
@@ -10,8 +16,6 @@
  * This means ANY number of replicas can merge in ANY order and ALWAYS converge
  * to the same correct state — no coordination, no locks, no conflicts.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LWWMap = exports.ORSet = exports.LWWRegister = exports.PNCounter = exports.GCounter = void 0;
 // Simple UUID-like random hex generator
 function randomHex(len) {
     const chars = '0123456789abcdef';
@@ -163,18 +167,36 @@ class LWWRegister {
     }
 }
 exports.LWWRegister = LWWRegister;
+/** The key an element has on the wire. A boolean uses the reference spelling, 'True' or 'False'. */
+function wireKey(e) {
+    if (typeof e === 'boolean')
+        return e ? 'True' : 'False';
+    return String(e);
+}
+function wireType(e) {
+    if (typeof e === 'boolean')
+        return 'bool';
+    if (typeof e === 'number')
+        return Number.isInteger(e) ? 'int' : 'float';
+    return undefined;
+}
+function sortedTags(tags) {
+    return [...tags].sort();
+}
 /**
  * Observed-Remove Set — add and remove elements without conflicts.
  *
- * Each element is tagged with a unique ID on add. Remove kills specific tags,
- * so concurrent add+remove of the same element resolves correctly (add wins
- * over concurrent remove — the "add-wins" semantics).
+ * Each element is tagged with a unique ID on add. Remove kills the tags it has observed and
+ * records them as tombstones, so concurrent add+remove of the same element resolves correctly
+ * (add wins over a concurrent remove) and a stale replica that still carries the removed tags
+ * cannot resurrect the element on merge.
  *
  * Perfect for: membership lists, tag sets, deduplication sets.
  */
 class ORSet {
     constructor() {
         this._elements = new Map();
+        this._tombstones = new Set();
     }
     /** Current set of live elements. */
     get value() {
@@ -194,39 +216,80 @@ class ORSet {
         this._elements.get(element).add(tag);
         return tag;
     }
-    /** Remove an element (clears all known tags). */
+    /** Remove an element: the tags observed here become tombstones. No error if it is absent. */
     remove(element) {
-        if (this._elements.has(element)) {
+        const tags = this._elements.get(element);
+        if (tags && tags.size > 0) {
+            for (const t of tags)
+                this._tombstones.add(t);
             this._elements.set(element, new Set());
         }
+    }
+    /** Remove one tag of an element. The element stays while another tag remains. */
+    removeTag(element, tag) {
+        const tags = this._elements.get(element);
+        if (tags === undefined)
+            throw new Error(`${JSON.stringify(element)} not found in ORSet`);
+        this._tombstones.add(tag);
+        tags.delete(tag);
     }
     /** Check if element is in the set. */
     contains(element) {
         const tags = this._elements.get(element);
         return tags !== undefined && tags.size > 0;
     }
-    /** Merge with another ORSet — union of all tags per element. */
+    /**
+     * Merge with another ORSet. Tombstones are united, and the live tags of each element are the
+     * union of both replicas' tags minus every tombstone.
+     */
     merge(other) {
         const result = new ORSet();
+        result._tombstones = new Set([...this._tombstones, ...other._tombstones]);
         const allElements = new Set([...this._elements.keys(), ...other._elements.keys()]);
         for (const e of allElements) {
             const tagsA = this._elements.get(e) ?? new Set();
             const tagsB = other._elements.get(e) ?? new Set();
-            result._elements.set(e, new Set([...tagsA, ...tagsB]));
+            const live = new Set();
+            for (const t of tagsA)
+                if (!result._tombstones.has(t))
+                    live.add(t);
+            for (const t of tagsB)
+                if (!result._tombstones.has(t))
+                    live.add(t);
+            result._elements.set(e, live);
         }
         return result;
     }
     toJSON() {
         const elements = {};
+        const types = {};
         for (const [k, v] of this._elements) {
-            elements[String(k)] = [...v];
+            const key = wireKey(k);
+            elements[key] = sortedTags(v);
+            const t = wireType(k);
+            if (t !== undefined)
+                types[key] = t;
         }
-        return { type: 'or_set', elements };
+        const out = { type: 'or_set', elements };
+        if (Object.keys(types).length > 0)
+            out.element_types = types;
+        if (this._tombstones.size > 0)
+            out.tombstones = sortedTags(this._tombstones);
+        return out;
     }
     static fromJSON(d) {
         const s = new ORSet();
+        const types = d.element_types ?? {};
+        s._tombstones = new Set(d.tombstones ?? []);
         for (const [k, tags] of Object.entries(d.elements ?? {})) {
-            s._elements.set(k, new Set(tags));
+            let key = k;
+            if (types[k] === 'int')
+                key = Number.parseInt(k, 10);
+            else if (types[k] === 'float')
+                key = Number(k);
+            else if (types[k] === 'bool')
+                key = k.toLowerCase() === 'true';
+            s._elements.set(key, new Set([...tags].filter((t) => !s._tombstones.has(t))));
         }
         return s;
     }
@@ -260,11 +323,16 @@ class LWWMap {
             this._tombstones.delete(key);
         }
     }
+    /** A key is live unless a tombstone is at least as new as its register. */
+    isLive(key, reg) {
+        const tomb = this._tombstones.get(key);
+        return tomb === undefined || reg.timestamp > tomb;
+    }
     get(key, defaultValue = null) {
-        if (this._tombstones.has(key))
-            return defaultValue;
         const reg = this._registers.get(key);
-        return reg ? reg.value : defaultValue;
+        if (reg === undefined || !this.isLive(key, reg))
+            return defaultValue;
+        return reg.value;
     }
     delete(key, timestamp) {
         const ts = timestamp ?? Date.now() / 1000;
@@ -273,8 +341,7 @@ class LWWMap {
     get value() {
         const result = {};
         for (const [k, reg] of this._registers) {
-            const tomb = this._tombstones.get(k);
-            if (tomb === undefined || reg.timestamp > tomb) {
+            if (this.isLive(k, reg)) {
                 result[k] = reg.value;
             }
         }
@@ -299,11 +366,8 @@ class LWWMap {
         // Merge tombstones
         const allTombKeys = new Set([...this._tombstones.keys(), ...other._tombstones.keys()]);
         for (const k of allTombKeys) {
-            const tsA = this._tombstones.get(k) ?? 0;
-            const tsB = other._tombstones.get(k) ?? 0;
-            const maxTs = Math.max(tsA, tsB);
-            if (maxTs > 0)
-                result._tombstones.set(k, maxTs);
+            const known = [this._tombstones.get(k), other._tombstones.get(k)].filter((t) => t !== undefined);
+            result._tombstones.set(k, Math.max(...known));
         }
         return result;
     }

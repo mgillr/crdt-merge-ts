@@ -1,14 +1,3 @@
-/**
- * Core CRDT primitives — mathematically proven conflict-free replicated data types.
- *
- * Every type here satisfies the CRDT convergence theorem:
- *   - Commutative:  merge(A, B) == merge(B, A)
- *   - Associative:  merge(merge(A, B), C) == merge(A, merge(B, C))
- *   - Idempotent:   merge(A, A) == A
- *
- * This means ANY number of replicas can merge in ANY order and ALWAYS converge
- * to the same correct state — no coordination, no locks, no conflicts.
- */
 export interface GCounterJSON {
     type: 'g_counter';
     counts: Record<string, number>;
@@ -83,31 +72,42 @@ export declare class LWWRegister<T = any> {
 export interface ORSetJSON {
     type: 'or_set';
     elements: Record<string, string[]>;
+    /** Present only for non-string elements: the original type of each key ('int', 'float' or 'bool'). */
+    element_types?: Record<string, string>;
+    /** Present once anything was removed: the tags that were observed and removed, sorted. */
+    tombstones?: string[];
 }
 /**
  * Observed-Remove Set — add and remove elements without conflicts.
  *
- * Each element is tagged with a unique ID on add. Remove kills specific tags,
- * so concurrent add+remove of the same element resolves correctly (add wins
- * over concurrent remove — the "add-wins" semantics).
+ * Each element is tagged with a unique ID on add. Remove kills the tags it has observed and
+ * records them as tombstones, so concurrent add+remove of the same element resolves correctly
+ * (add wins over a concurrent remove) and a stale replica that still carries the removed tags
+ * cannot resurrect the element on merge.
  *
  * Perfect for: membership lists, tag sets, deduplication sets.
  */
-export declare class ORSet<T extends string | number = string> {
+export declare class ORSet<T extends string | number | boolean = string> {
     private _elements;
+    private _tombstones;
     constructor();
     /** Current set of live elements. */
     get value(): Set<T>;
     /** Add an element, returning its unique tag. */
     add(element: T): string;
-    /** Remove an element (clears all known tags). */
+    /** Remove an element: the tags observed here become tombstones. No error if it is absent. */
     remove(element: T): void;
+    /** Remove one tag of an element. The element stays while another tag remains. */
+    removeTag(element: T, tag: string): void;
     /** Check if element is in the set. */
     contains(element: T): boolean;
-    /** Merge with another ORSet — union of all tags per element. */
+    /**
+     * Merge with another ORSet. Tombstones are united, and the live tags of each element are the
+     * union of both replicas' tags minus every tombstone.
+     */
     merge(other: ORSet<T>): ORSet<T>;
     toJSON(): ORSetJSON;
-    static fromJSON<T extends string | number = string>(d: ORSetJSON): ORSet<T>;
+    static fromJSON<T extends string | number | boolean = string>(d: ORSetJSON): ORSet<T>;
     toString(): string;
 }
 export interface LWWMapJSON {
@@ -128,6 +128,8 @@ export declare class LWWMap {
     private _tombstones;
     constructor();
     set(key: string, value: any, timestamp?: number, nodeId?: string): void;
+    /** A key is live unless a tombstone is at least as new as its register. */
+    private isLive;
     get(key: string, defaultValue?: any): any;
     delete(key: string, timestamp?: number): void;
     get value(): Record<string, any>;

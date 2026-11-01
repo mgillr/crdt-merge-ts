@@ -22,11 +22,16 @@
  *   const result = mergeDicts(configA, configB);
  */
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.3.0';
 
 // Core CRDT types
 export { GCounter, PNCounter, LWWRegister, ORSet, LWWMap } from './core';
 export type { GCounterJSON, PNCounterJSON, LWWRegisterJSON, ORSetJSON, LWWMapJSON } from './core';
+
+// Agent state and the canonical wire form
+export { AgentState, Fact } from './agent-state';
+export type { AgentStateJSON, AgentStateOptions, AgentMessage, FactJSON } from './agent-state';
+export { canonicalize, emitCanonical } from './canonical';
 
 // Tabular merge
 export { merge } from './merge';

@@ -1,11 +1,8 @@
 "use strict";
-/**
- * High-performance deduplication powered by CRDT OR-Sets.
- *
- * Methods:
- *   - Exact dedup: normalized string comparison
- *   - Fuzzy dedup: Jaccard similarity on character bigrams
- */
+// Copyright 2026 Ryan Gillespie
+// SPDX-License-Identifier: Apache-2.0
+//
+// Commercial licensing: data@optitransfer.ch, rgillespie83@icloud.com
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.jaccardSimilarity = jaccardSimilarity;
 exports.dedup = dedup;
