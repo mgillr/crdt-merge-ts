@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * AgentState — a CRDT container for one agent's facts, tags, counters and messages.
+ * AgentState: a CRDT container for one agent's facts, tags, counters and messages.
  *
  * Wraps an LWWMap (facts), an ORSet (tags) and PNCounters, and reads and writes the same wire
  * form as the reference implementation.
