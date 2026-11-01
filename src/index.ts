@@ -22,7 +22,7 @@
  *   const result = mergeDicts(configA, configB);
  */
 
-export const VERSION = '0.1.0';
+export const VERSION = '1.0.0';
 
 // Core CRDT types
 export { GCounter, PNCounter, LWWRegister, ORSet, LWWMap } from './core';
