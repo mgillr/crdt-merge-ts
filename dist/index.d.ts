@@ -16,7 +16,7 @@
  *   // Merge JSON/objects
  *   const result = mergeDicts(configA, configB);
  */
-export declare const VERSION = "1.0.0";
+export declare const VERSION = "0.3.0";
 export { GCounter, PNCounter, LWWRegister, ORSet, LWWMap } from './core';
 export type { GCounterJSON, PNCounterJSON, LWWRegisterJSON, ORSetJSON, LWWMapJSON } from './core';
 export { AgentState, Fact } from './agent-state';

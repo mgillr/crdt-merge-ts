@@ -23,7 +23,7 @@ exports.mergeDicts = exports.diff = exports.jaccardSimilarity = exports.dedup = 
  *   // Merge JSON/objects
  *   const result = mergeDicts(configA, configB);
  */
-exports.VERSION = '1.0.0';
+exports.VERSION = '0.3.0';
 // Core CRDT types
 var core_1 = require("./core");
 Object.defineProperty(exports, "GCounter", { enumerable: true, get: function () { return core_1.GCounter; } });
