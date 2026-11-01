@@ -21,11 +21,11 @@ describe('AgentState', () => {
     expect(s.getFact('missing')).toBeNull();
   });
 
-  test('a later fact replaces an earlier one and an earlier one does not replace a later one', () => {
+  test('addFact on an existing key overwrites it locally, as the reference does', () => {
     const s = new AgentState('a1');
-    s.addFact('k', 'late', 1, 20.5);
-    s.addFact('k', 'early', 1, 10.5);
-    expect((s.getFact('k') as Fact).value).toBe('late');
+    s.addFact('k', 'first', 1, 20.5);
+    s.addFact('k', 'second', 1, 10.5);
+    expect((s.getFact('k') as Fact).value).toBe('second');
   });
 
   test('tags add, remove and report', () => {

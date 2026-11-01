@@ -222,22 +222,45 @@ export class LWWRegister<T = any> {
 export interface ORSetJSON {
   type: 'or_set';
   elements: Record<string, string[]>;
+  /** Present only for non-string elements: the original type of each key ('int', 'float' or 'bool'). */
+  element_types?: Record<string, string>;
+  /** Present once anything was removed: the tags that were observed and removed, sorted. */
+  tombstones?: string[];
+}
+
+/** The key an element has on the wire. A boolean uses the reference spelling, 'True' or 'False'. */
+function wireKey(e: string | number | boolean): string {
+  if (typeof e === 'boolean') return e ? 'True' : 'False';
+  return String(e);
+}
+
+function wireType(e: string | number | boolean): string | undefined {
+  if (typeof e === 'boolean') return 'bool';
+  if (typeof e === 'number') return Number.isInteger(e) ? 'int' : 'float';
+  return undefined;
+}
+
+function sortedTags(tags: Iterable<string>): string[] {
+  return [...tags].sort();
 }
 
 /**
  * Observed-Remove Set — add and remove elements without conflicts.
  *
- * Each element is tagged with a unique ID on add. Remove kills specific tags,
- * so concurrent add+remove of the same element resolves correctly (add wins
- * over concurrent remove — the "add-wins" semantics).
+ * Each element is tagged with a unique ID on add. Remove kills the tags it has observed and
+ * records them as tombstones, so concurrent add+remove of the same element resolves correctly
+ * (add wins over a concurrent remove) and a stale replica that still carries the removed tags
+ * cannot resurrect the element on merge.
  *
  * Perfect for: membership lists, tag sets, deduplication sets.
  */
-export class ORSet<T extends string | number = string> {
+export class ORSet<T extends string | number | boolean = string> {
   private _elements: Map<T, Set<string>>;
+  private _tombstones: Set<string>;
 
   constructor() {
     this._elements = new Map();
+    this._tombstones = new Set();
   }
 
   /** Current set of live elements. */
@@ -259,11 +282,21 @@ export class ORSet<T extends string | number = string> {
     return tag;
   }
 
-  /** Remove an element (clears all known tags). */
+  /** Remove an element: the tags observed here become tombstones. No error if it is absent. */
   remove(element: T): void {
-    if (this._elements.has(element)) {
+    const tags = this._elements.get(element);
+    if (tags && tags.size > 0) {
+      for (const t of tags) this._tombstones.add(t);
       this._elements.set(element, new Set());
     }
+  }
+
+  /** Remove one tag of an element. The element stays while another tag remains. */
+  removeTag(element: T, tag: string): void {
+    const tags = this._elements.get(element);
+    if (tags === undefined) throw new Error(`${JSON.stringify(element)} not found in ORSet`);
+    this._tombstones.add(tag);
+    tags.delete(tag);
   }
 
   /** Check if element is in the set. */
@@ -272,30 +305,50 @@ export class ORSet<T extends string | number = string> {
     return tags !== undefined && tags.size > 0;
   }
 
-  /** Merge with another ORSet — union of all tags per element. */
+  /**
+   * Merge with another ORSet. Tombstones are united, and the live tags of each element are the
+   * union of both replicas' tags minus every tombstone.
+   */
   merge(other: ORSet<T>): ORSet<T> {
     const result = new ORSet<T>();
+    result._tombstones = new Set([...this._tombstones, ...other._tombstones]);
     const allElements = new Set([...this._elements.keys(), ...other._elements.keys()]);
     for (const e of allElements) {
-      const tagsA = this._elements.get(e) ?? new Set();
-      const tagsB = other._elements.get(e) ?? new Set();
-      result._elements.set(e, new Set([...tagsA, ...tagsB]));
+      const tagsA = this._elements.get(e) ?? new Set<string>();
+      const tagsB = other._elements.get(e) ?? new Set<string>();
+      const live = new Set<string>();
+      for (const t of tagsA) if (!result._tombstones.has(t)) live.add(t);
+      for (const t of tagsB) if (!result._tombstones.has(t)) live.add(t);
+      result._elements.set(e, live);
     }
     return result;
   }
 
   toJSON(): ORSetJSON {
     const elements: Record<string, string[]> = {};
+    const types: Record<string, string> = {};
     for (const [k, v] of this._elements) {
-      elements[String(k)] = [...v];
+      const key = wireKey(k);
+      elements[key] = sortedTags(v);
+      const t = wireType(k);
+      if (t !== undefined) types[key] = t;
     }
-    return { type: 'or_set', elements };
+    const out: ORSetJSON = { type: 'or_set', elements };
+    if (Object.keys(types).length > 0) out.element_types = types;
+    if (this._tombstones.size > 0) out.tombstones = sortedTags(this._tombstones);
+    return out;
   }
 
-  static fromJSON<T extends string | number = string>(d: ORSetJSON): ORSet<T> {
+  static fromJSON<T extends string | number | boolean = string>(d: ORSetJSON): ORSet<T> {
     const s = new ORSet<T>();
+    const types = d.element_types ?? {};
+    s._tombstones = new Set(d.tombstones ?? []);
     for (const [k, tags] of Object.entries(d.elements ?? {})) {
-      s._elements.set(k as unknown as T, new Set(tags));
+      let key: string | number | boolean = k;
+      if (types[k] === 'int') key = Number.parseInt(k, 10);
+      else if (types[k] === 'float') key = Number(k);
+      else if (types[k] === 'bool') key = k.toLowerCase() === 'true';
+      s._elements.set(key as T, new Set([...tags].filter((t) => !s._tombstones.has(t))));
     }
     return s;
   }
@@ -343,10 +396,16 @@ export class LWWMap {
     }
   }
 
+  /** A key is live unless a tombstone is at least as new as its register. */
+  private isLive(key: string, reg: LWWRegister): boolean {
+    const tomb = this._tombstones.get(key);
+    return tomb === undefined || reg.timestamp > tomb;
+  }
+
   get(key: string, defaultValue: any = null): any {
-    if (this._tombstones.has(key)) return defaultValue;
     const reg = this._registers.get(key);
-    return reg ? reg.value : defaultValue;
+    if (reg === undefined || !this.isLive(key, reg)) return defaultValue;
+    return reg.value;
   }
 
   delete(key: string, timestamp?: number): void {
@@ -357,8 +416,7 @@ export class LWWMap {
   get value(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const [k, reg] of this._registers) {
-      const tomb = this._tombstones.get(k);
-      if (tomb === undefined || reg.timestamp > tomb) {
+      if (this.isLive(k, reg)) {
         result[k] = reg.value;
       }
     }
@@ -382,10 +440,8 @@ export class LWWMap {
     // Merge tombstones
     const allTombKeys = new Set([...this._tombstones.keys(), ...other._tombstones.keys()]);
     for (const k of allTombKeys) {
-      const tsA = this._tombstones.get(k) ?? 0;
-      const tsB = other._tombstones.get(k) ?? 0;
-      const maxTs = Math.max(tsA, tsB);
-      if (maxTs > 0) result._tombstones.set(k, maxTs);
+      const known = [this._tombstones.get(k), other._tombstones.get(k)].filter((t): t is number => t !== undefined);
+      result._tombstones.set(k, Math.max(...known));
     }
     return result;
   }
