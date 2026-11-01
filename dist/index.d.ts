@@ -16,9 +16,12 @@
  *   // Merge JSON/objects
  *   const result = mergeDicts(configA, configB);
  */
-export declare const VERSION = "0.1.0";
+export declare const VERSION = "1.0.0";
 export { GCounter, PNCounter, LWWRegister, ORSet, LWWMap } from './core';
 export type { GCounterJSON, PNCounterJSON, LWWRegisterJSON, ORSetJSON, LWWMapJSON } from './core';
+export { AgentState, Fact } from './agent-state';
+export type { AgentStateJSON, AgentStateOptions, AgentMessage, FactJSON } from './agent-state';
+export { canonicalize, emitCanonical } from './canonical';
 export { merge } from './merge';
 export type { MergeOptions } from './merge';
 export { dedup, jaccardSimilarity } from './dedup';

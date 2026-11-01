@@ -1,11 +1,3 @@
-/**
- * CRDT-powered tabular merge — conflict-free merge of arrays of objects (like DataFrames).
- *
- * Handles:
- *   - Row-level merge by key column (matched rows: LWW per cell)
- *   - Rows unique to either side: preserved
- *   - Schema divergence: union of columns, missing filled with undefined
- */
 export interface MergeOptions {
     /** Primary key field (default: "id"). */
     key?: string;

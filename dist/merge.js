@@ -1,4 +1,10 @@
 "use strict";
+// Copyright 2026 Ryan Gillespie
+// SPDX-License-Identifier: Apache-2.0
+//
+// Commercial licensing: data@optitransfer.ch, rgillespie83@icloud.com
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.merge = merge;
 /**
  * CRDT-powered tabular merge — conflict-free merge of arrays of objects (like DataFrames).
  *
@@ -7,8 +13,6 @@
  *   - Rows unique to either side: preserved
  *   - Schema divergence: union of columns, missing filled with undefined
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.merge = merge;
 const core_1 = require("./core");
 /**
  * Merge two arrays of objects using CRDT semantics — conflict-free, deterministic, order-independent.

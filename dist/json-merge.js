@@ -1,11 +1,8 @@
 "use strict";
-/**
- * Deep conflict-free JSON/object merge using CRDT semantics.
- *
- * Handles nested objects, arrays, and mixed types. Each leaf is treated as an
- * LWW Register — if both sides set a value, the one with the later timestamp
- * (or side B by default) wins.
- */
+// Copyright 2026 Ryan Gillespie
+// SPDX-License-Identifier: Apache-2.0
+//
+// Commercial licensing: data@optitransfer.ch, rgillespie83@icloud.com
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mergeDicts = mergeDicts;
 /**
